@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Containerlab generated files
+clab-*/
+
+# Containerlab state
+*.clab.yaml

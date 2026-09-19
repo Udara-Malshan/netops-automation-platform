@@ -1,0 +1,22 @@
+---
+- name: Configure OSPF on network routers
+  hosts: routers
+  gather_facts: false
+
+  tasks:
+
+    - name: Configure OSPF router ID
+      ansible.builtin.shell: |
+        vtysh -c "configure terminal" \
+              -c "router ospf" \
+              -c "router-id {{ router_id }}"
+      changed_when: true
+
+    - name: Configure OSPF networks
+      ansible.builtin.shell: |
+        vtysh -c "configure terminal" \
+              -c "router ospf" \
+              {% for network in ospf_networks %}
+              -c "network {{ network }} area 0" \
+              {% endfor %}
+      changed_when: true
