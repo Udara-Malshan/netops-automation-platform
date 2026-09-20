@@ -1,0 +1,48 @@
+---
+- name: Detect network configuration drift
+  hosts: routers
+  gather_facts: false
+
+  tasks:
+
+    - name: Get current running configuration
+      ansible.builtin.command:
+        cmd: vtysh -c "show running-config"
+      register: live_config
+      changed_when: false
+
+    - name: Load previous configuration backup
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/../backups/{{ inventory_hostname }}/running-config.txt"
+      delegate_to: localhost
+      register: backup_config
+
+    - name: Decode backup configuration
+      ansible.builtin.set_fact:
+        expected_config: "{{ backup_config.content | b64decode }}"
+
+    - name: Compare configurations
+      ansible.builtin.shell: |
+        diff -u \
+        <(printf '%s\n' "{{ expected_config }}") \
+        <(printf '%s\n' "{{ live_config.stdout }}")
+      args:
+        executable: /bin/bash
+      delegate_to: localhost
+      register: config_diff
+      changed_when: false
+      failed_when: false
+
+    - name: Display drift result
+      ansible.builtin.debug:
+        msg: |
+          Router: {{ inventory_hostname }}
+
+          {% if config_diff.rc == 0 %}
+          STATUS: NO DRIFT
+          Configuration matches the backup.
+          {% else %}
+          STATUS: DRIFT DETECTED
+
+          {{ config_diff.stdout }}
+          {% endif %}

@@ -8,7 +8,6 @@ hostname r1
 !
 interface eth1
  ip address 10.0.12.1/30
- ip address 10.0.31.1/30
 exit
 !
 interface eth2

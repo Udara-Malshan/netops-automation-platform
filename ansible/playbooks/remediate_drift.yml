@@ -1,0 +1,44 @@
+---
+- name: Remediate known network configuration drift
+  hosts: routers
+  gather_facts: false
+
+  tasks:
+
+    - name: Check current interface description
+      ansible.builtin.shell: |
+        vtysh -c "show running-config"
+      register: running_config
+      changed_when: false
+
+    - name: Remove DRIFT-TEST description
+      ansible.builtin.shell: |
+        vtysh -c "configure terminal" \
+              -c "interface eth1" \
+              -c "no description" \
+              -c "end"
+      when: "'description DRIFT-TEST' in running_config.stdout"
+      register: remediation
+
+    - name: Save configuration
+      ansible.builtin.shell: |
+        vtysh -c "write memory"
+      when: remediation.changed
+
+    - name: Verify configuration after remediation
+      ansible.builtin.shell: |
+        vtysh -c "show running-config"
+      register: verified_config
+      changed_when: false
+
+    - name: Display remediation result
+      ansible.builtin.debug:
+        msg: |
+          Router: {{ inventory_hostname }}
+
+          {% if 'description DRIFT-TEST' in verified_config.stdout %}
+          STATUS: REMEDIATION FAILED
+          {% else %}
+          STATUS: REMEDIATION COMPLETE
+          DRIFT-TEST description is no longer present.
+          {% endif %}
